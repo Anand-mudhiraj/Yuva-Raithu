@@ -13,7 +13,7 @@ class AppTheme {
       colorScheme: const ColorScheme.light(
         primary: primaryColor,
         secondary: secondaryColor,
-        background: backgroundColor,
+        surface: backgroundColor,
       ),
       textTheme: const TextTheme(
         bodyLarge: TextStyle(color: textColor),

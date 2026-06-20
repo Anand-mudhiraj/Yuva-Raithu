@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yuva_raithu_app/core/providers.dart';
@@ -11,7 +10,10 @@ import 'package:yuva_raithu_app/features/marketplace/domain/product.dart';
 import 'package:yuva_raithu_app/features/orders/presentation/cart_screen.dart';
 import 'package:yuva_raithu_app/features/orders/presentation/checkout_screen.dart';
 import 'package:yuva_raithu_app/features/orders/presentation/order_history_screen.dart';
-
+import 'package:yuva_raithu_app/features/voice/presentation/voice_assistant_screen.dart';
+import 'package:yuva_raithu_app/features/dealer/presentation/dealer_dashboard_screen.dart';
+import 'package:yuva_raithu_app/features/dealer/presentation/add_product_screen.dart';
+import 'package:yuva_raithu_app/features/weather/presentation/weather_screen.dart';
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authNotifierProvider);
 
@@ -66,6 +68,22 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/orders',
         builder: (context, state) => const OrderHistoryScreen(),
+      ),
+      GoRoute(
+        path: '/voice',
+        builder: (context, state) => const VoiceAssistantScreen(),
+      ),
+      GoRoute(
+        path: '/dealer-dashboard',
+        builder: (context, state) => const DealerDashboardScreen(),
+      ),
+      GoRoute(
+        path: '/add-product',
+        builder: (context, state) => const AddProductScreen(),
+      ),
+      GoRoute(
+        path: '/weather',
+        builder: (context, state) => const WeatherScreen(),
       ),
     ],
   );

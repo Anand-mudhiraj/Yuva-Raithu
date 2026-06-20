@@ -10,13 +10,18 @@ final marketplaceRepositoryProvider = Provider((ref) {
 });
 
 // Provider for fetching all products, by category or by search query
-final productsProvider = FutureProvider.family<List<Product>, Map<String, String?>>((ref, params) async {
+final productsProvider = FutureProvider.family<List<Product>, String>((ref, paramString) async {
   final repository = ref.watch(marketplaceRepositoryProvider);
   
-  if (params['query'] != null && params['query']!.isNotEmpty) {
-    return repository.searchProducts(params['query']!);
-  } else if (params['category'] != null && params['category']!.isNotEmpty) {
-    return repository.getProductsByCategory(params['category']!);
+  // Parse the query parameters from the string (e.g. category=SEEDS&query=Urea)
+  final uri = Uri.parse('http://dummy.com/?$paramString');
+  final category = uri.queryParameters['category'];
+  final query = uri.queryParameters['query'];
+  
+  if (query != null && query.isNotEmpty) {
+    return repository.searchProducts(query);
+  } else if (category != null && category.isNotEmpty) {
+    return repository.getProductsByCategory(category);
   } else {
     return repository.getAllProducts();
   }

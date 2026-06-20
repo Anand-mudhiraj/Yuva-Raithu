@@ -1,3 +1,5 @@
+import 'package:yuva_raithu_app/features/orders/domain/order_item.dart';
+
 class Order {
   final int id;
   final String status;
@@ -6,6 +8,7 @@ class Order {
   final String paymentMethod;
   final String paymentTransactionId;
   final String createdAt;
+  final List<OrderItem> items;
 
   Order({
     required this.id,
@@ -15,6 +18,7 @@ class Order {
     required this.paymentMethod,
     required this.paymentTransactionId,
     required this.createdAt,
+    required this.items,
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
@@ -26,6 +30,10 @@ class Order {
       paymentMethod: json['paymentMethod'] ?? '',
       paymentTransactionId: json['paymentTransactionId'] ?? '',
       createdAt: json['createdAt']?.toString() ?? '',
+      items: (json['items'] as List<dynamic>?)
+              ?.map((itemJson) => OrderItem.fromJson(itemJson))
+              .toList() ??
+          [],
     );
   }
 }

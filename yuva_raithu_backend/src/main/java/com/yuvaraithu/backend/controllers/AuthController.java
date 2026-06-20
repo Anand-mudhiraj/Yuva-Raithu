@@ -58,7 +58,7 @@ public class AuthController {
                 userDetails.getId(),
                 userDetails.getUsername(),
                 userDetails.getEmail(),
-                "", // fullName
+                userDetails.getFullName(), // use the actual full name
                 roles));
     }
 
@@ -112,5 +112,28 @@ public class AuthController {
         userRepository.save(user);
 
         return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
+            return ResponseEntity.status(401).body(new MessageResponse("Error: Unauthorized"));
+        }
+
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        List<String> roles = userDetails.getAuthorities().stream()
+                .map(item -> item.getAuthority())
+                .collect(Collectors.toList());
+
+        // We can reuse JwtResponse or create a UserResponse DTO. Since frontend expects the same structure on login,
+        // we can just return JwtResponse with an empty token, or create a simple response.
+        // Let's return the same structure as login so frontend parsing is easy.
+        return ResponseEntity.ok(new JwtResponse("", // no new token
+                userDetails.getId(),
+                userDetails.getUsername(),
+                userDetails.getEmail(),
+                userDetails.getFullName(),
+                roles));
     }
 }

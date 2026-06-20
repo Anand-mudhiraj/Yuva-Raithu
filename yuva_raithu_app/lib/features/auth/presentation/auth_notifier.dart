@@ -32,9 +32,15 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<void> checkLoginStatus() async {
     final isLoggedIn = await _authRepository.isLoggedIn();
     if (isLoggedIn) {
-      // Typically you would fetch the user profile here using the token
-      // For now, we'll just set a dummy user or remain logged in state
-      state = state.copyWith(user: User(id: 0, phoneNumber: 'Logged In', email: '', fullName: '', roles: []));
+      // Fetch the actual user profile to rehydrate the state properly
+      final user = await _authRepository.getUserProfile();
+      if (user != null) {
+        state = state.copyWith(user: user);
+      } else {
+        // Token is invalid or expired
+        await _authRepository.logout();
+        state = AuthState();
+      }
     }
   }
 

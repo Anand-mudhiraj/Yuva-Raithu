@@ -1,6 +1,3 @@
-import 'dart:convert';
-import 'package:dio/dio.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:yuva_raithu_app/core/constants/api_constants.dart';
 import 'package:yuva_raithu_app/core/network/api_client.dart';
 import 'package:yuva_raithu_app/features/auth/domain/user.dart';
@@ -61,5 +58,18 @@ class AuthRepository {
   Future<bool> isLoggedIn() async {
     final token = await apiClient.secureStorage.read(key: 'jwt_token');
     return token != null;
+  }
+
+  Future<User?> getUserProfile() async {
+    try {
+      final response = await apiClient.dio.get('/auth/me');
+      if (response.statusCode == 200 && response.data != null) {
+        return User.fromJson(response.data);
+      }
+      return null;
+    } catch (e) {
+      // Catch network or parsing errors and return null
+      return null;
+    }
   }
 }
