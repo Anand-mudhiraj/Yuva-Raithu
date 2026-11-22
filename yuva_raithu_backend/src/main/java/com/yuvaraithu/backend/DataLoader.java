@@ -10,7 +10,10 @@ import com.yuvaraithu.backend.models.Category;
 import com.yuvaraithu.backend.models.User;
 import com.yuvaraithu.backend.models.Role;
 import com.yuvaraithu.backend.repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Component
 public class DataLoader implements CommandLineRunner {
@@ -21,21 +24,36 @@ public class DataLoader implements CommandLineRunner {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @Override
     public void run(String... args) throws Exception {
+        // Ensure dummy dealer exists
+        User dealer = userRepository.findByPhoneNumber("9999999999").orElseGet(() -> {
+            User u = new User();
+            u.setEmail("dealer@dummy.com");
+            u.setFullName("Sri Rama Agri Traders");
+            u.setPhoneNumber("9999999999");
+            u.setPassword(passwordEncoder.encode("password"));
+            u.setRoles(new HashSet<>(Set.of(Role.DEALER)));
+            return userRepository.save(u);
+        });
+
+        // Ensure demo farmer user exists
+        userRepository.findByPhoneNumber("9876543210").orElseGet(() -> {
+            User u = new User();
+            u.setEmail("farmer@dummy.com");
+            u.setFullName("Ramesh Kumar");
+            u.setPhoneNumber("9876543210");
+            u.setPassword(passwordEncoder.encode("password"));
+            u.setRoles(new HashSet<>(Set.of(Role.FARMER)));
+            return userRepository.save(u);
+        });
+
         if (productRepository.count() < 12) {
             System.out.println("Clearing old data and seeding database with demo products...");
             productRepository.deleteAll();
-            
-            // Create a dummy dealer if it doesn't exist
-            User dealer = userRepository.findByPhoneNumber("9999999999").orElseGet(() -> {
-                User u = new User();
-                u.setEmail("dealer@dummy.com");
-                u.setFullName("Dummy Dealer");
-                u.setPhoneNumber("9999999999");
-                u.setPassword("password");
-                return userRepository.save(u);
-            });
 
             // SEEDS
             Product s1 = new Product();

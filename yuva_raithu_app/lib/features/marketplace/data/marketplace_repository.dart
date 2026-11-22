@@ -24,6 +24,19 @@ class MarketplaceRepository {
     return [];
   }
 
+  Future<Product> getProductById(int id) async {
+    try {
+      final response = await apiClient.dio.get('/products/$id');
+      if (response.statusCode == 200) {
+        return Product.fromJson(response.data);
+      } else {
+        throw Exception('Product not found');
+      }
+    } catch (e) {
+      throw Exception('Failed to fetch product: $e');
+    }
+  }
+
   Future<List<Product>> getProductsByCategory(String category) async {
     try {
       final formattedCategory = category.toUpperCase();

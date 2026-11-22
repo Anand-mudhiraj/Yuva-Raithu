@@ -34,6 +34,18 @@ public class OrderController {
         return ResponseEntity.ok(orderService.getOrdersForFarmer(authentication.getName()));
     }
 
+    @GetMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<OrderDTO> getOrderById(@PathVariable Long id) {
+        return ResponseEntity.ok(orderService.getOrderById(id));
+    }
+
+    @GetMapping("/all")
+    @PreAuthorize("hasAuthority('DEALER') or hasAuthority('ADMIN')")
+    public ResponseEntity<List<OrderDTO>> getAllOrders() {
+        return ResponseEntity.ok(orderService.getAllOrders());
+    }
+
     @PutMapping("/{id}/status")
     @PreAuthorize("hasAuthority('DEALER') or hasAuthority('ADMIN')")
     public ResponseEntity<OrderDTO> updateOrderStatus(@PathVariable Long id, @RequestParam OrderStatus status) {

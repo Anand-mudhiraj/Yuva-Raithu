@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:yuva_raithu_app/core/constants/api_constants.dart';
 import 'package:yuva_raithu_app/core/network/api_client.dart';
 import 'package:yuva_raithu_app/features/auth/domain/user.dart';
@@ -9,6 +10,7 @@ class AuthRepository {
 
   Future<User?> login(String phoneNumber, String password) async {
     try {
+      debugPrint('[AuthRepository] Attempting login for phone: $phoneNumber to ${ApiConstants.baseUrl}${ApiConstants.loginEndpoint}');
       final response = await apiClient.dio.post(
         ApiConstants.loginEndpoint,
         data: {
@@ -17,15 +19,20 @@ class AuthRepository {
         },
       );
 
+      debugPrint('[AuthRepository] Response status: ${response.statusCode}');
       if (response.statusCode == 200) {
         final data = response.data;
+        debugPrint('[AuthRepository] Login success data: $data');
         // Save Token securely
         await apiClient.secureStorage.write(key: 'jwt_token', value: data['token']);
         
         // Return User domain object
-        return User.fromJson(data);
+        final user = User.fromJson(data);
+        debugPrint('[AuthRepository] Parsed user: ${user.fullName}, ID: ${user.id}');
+        return user;
       }
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('[AuthRepository] Login error: $e\n$stack');
       throw Exception('Failed to login: $e');
     }
     return null;

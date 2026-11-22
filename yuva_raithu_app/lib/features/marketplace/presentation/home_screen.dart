@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yuva_raithu_app/core/providers.dart';
+import 'package:yuva_raithu_app/features/orders/presentation/cart_notifier.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -23,7 +24,69 @@ class HomeScreen extends ConsumerWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Icon(Icons.menu, size: 28),
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.menu, size: 28),
+                      onSelected: (val) async {
+                        switch (val) {
+                          case 'weather':
+                            context.push('/weather');
+                            break;
+                          case 'dealer':
+                            context.push('/dealer-dashboard');
+                            break;
+                          case 'orders':
+                            context.push('/orders');
+                            break;
+                          case 'logout':
+                            await ref.read(authNotifierProvider.notifier).logout();
+                            if (context.mounted) context.go('/login');
+                            break;
+                        }
+                      },
+                      itemBuilder: (ctx) => [
+                        const PopupMenuItem(
+                          value: 'weather',
+                          child: Row(
+                            children: [
+                              Icon(Icons.wb_sunny_outlined, color: Color(0xFF2E7D32)),
+                              SizedBox(width: 8),
+                              Text('Weather Forecast'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'dealer',
+                          child: Row(
+                            children: [
+                              Icon(Icons.storefront, color: Color(0xFF2E7D32)),
+                              SizedBox(width: 8),
+                              Text('Dealer Hub'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'orders',
+                          child: Row(
+                            children: [
+                              Icon(Icons.receipt_long, color: Color(0xFF2E7D32)),
+                              SizedBox(width: 8),
+                              Text('My Orders'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuDivider(),
+                        const PopupMenuItem(
+                          value: 'logout',
+                          child: Row(
+                            children: [
+                              Icon(Icons.logout, color: Colors.red),
+                              SizedBox(width: 8),
+                              Text('Logout', style: TextStyle(color: Colors.red)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                     // Logo and Title
                     Column(
                       children: const [
@@ -46,7 +109,38 @@ class HomeScreen extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    const Icon(Icons.notifications_none, size: 28),
+                    // Cart Icon with dynamic badge
+                    Consumer(
+                      builder: (context, ref, _) {
+                        final cartItems = ref.watch(cartNotifierProvider);
+                        final count = cartItems.fold<int>(0, (sum, i) => sum + i.quantity);
+                        return Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.shopping_cart_outlined, size: 28),
+                              onPressed: () => context.push('/cart'),
+                            ),
+                            if (count > 0)
+                              Positioned(
+                                top: 4,
+                                right: 4,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Text(
+                                    '$count',
+                                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        );
+                      },
+                    ),
                   ],
                 ),
               ),

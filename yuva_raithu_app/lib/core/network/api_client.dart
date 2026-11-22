@@ -13,6 +13,12 @@ class ApiClient {
 
     dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
+        // Guarantee path is prefixed with /api for backend controllers
+        if (!options.path.startsWith('http')) {
+          if (!options.path.startsWith('/api')) {
+            options.path = '/api${options.path.startsWith('/') ? options.path : '/${options.path}'}';
+          }
+        }
         // Add Authorization header if token exists
         final token = await secureStorage.read(key: 'jwt_token');
         if (token != null) {

@@ -40,4 +40,46 @@ class OrderRepository {
     }
     return [];
   }
+
+  Future<Order> getOrderById(int orderId) async {
+    try {
+      final response = await apiClient.dio.get('/orders/$orderId');
+      if (response.statusCode == 200) {
+        return Order.fromJson(response.data);
+      } else {
+        throw Exception('Failed to load order');
+      }
+    } catch (e) {
+      throw Exception('Failed to fetch order: $e');
+    }
+  }
+
+  Future<List<Order>> getAllOrders() async {
+    try {
+      final response = await apiClient.dio.get('/orders/all');
+      if (response.statusCode == 200) {
+        final List data = response.data;
+        return data.map((json) => Order.fromJson(json)).toList();
+      }
+    } catch (e) {
+      throw Exception('Failed to fetch all orders: $e');
+    }
+    return [];
+  }
+
+  Future<Order> updateOrderStatus(int orderId, String status) async {
+    try {
+      final response = await apiClient.dio.put(
+        '/orders/$orderId/status',
+        queryParameters: {'status': status},
+      );
+      if (response.statusCode == 200) {
+        return Order.fromJson(response.data);
+      } else {
+        throw Exception('Failed to update status');
+      }
+    } catch (e) {
+      throw Exception('Failed to update status: $e');
+    }
+  }
 }

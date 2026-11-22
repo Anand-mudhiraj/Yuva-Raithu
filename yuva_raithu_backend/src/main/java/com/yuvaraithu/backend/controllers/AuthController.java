@@ -93,9 +93,6 @@ public class AuthController {
         } else {
             strRoles.forEach(role -> {
                 switch (role.toLowerCase()) {
-                    case "admin":
-                        roles.add(Role.ADMIN);
-                        break;
                     case "dealer":
                         roles.add(Role.DEALER);
                         break;
@@ -103,6 +100,7 @@ public class AuthController {
                         roles.add(Role.DELIVERY);
                         break;
                     default:
+                        // ADMIN role cannot be self-assigned via public signup
                         roles.add(Role.FARMER);
                 }
             });

@@ -1,14 +1,15 @@
 import 'dart:io';
 
 class ApiConstants {
-  // Use 10.0.2.2 for Android emulator to connect to localhost
-  // Use localhost or 127.0.0.1 for iOS simulator and Windows
+  // Support compile-time configuration via --dart-define=API_URL=http://<ip>:8080/api
+  static const String _envUrl = String.fromEnvironment('API_URL');
+
   static String get baseUrl {
-    if (Platform.isAndroid) {
-      return 'http://10.92.190.21:8080/api'; // Host Wi-Fi IP for physical device
-    } else {
-      return 'http://127.0.0.1:8080/api';
+    if (_envUrl.isNotEmpty) {
+      return _envUrl;
     }
+    // Base server URL without /api (interceptor guarantees /api prefix)
+    return 'http://127.0.0.1:8080';
   }
   
   static const String loginEndpoint = '/auth/signin';

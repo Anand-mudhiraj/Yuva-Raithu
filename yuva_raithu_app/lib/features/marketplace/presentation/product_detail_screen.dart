@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yuva_raithu_app/features/marketplace/domain/product.dart';
+import 'package:yuva_raithu_app/features/marketplace/presentation/marketplace_providers.dart';
 import 'package:yuva_raithu_app/features/orders/presentation/cart_notifier.dart';
 
 class ProductDetailScreen extends ConsumerWidget {
@@ -11,6 +12,10 @@ class ProductDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cartItems = ref.watch(cartNotifierProvider);
+    final cartCount = cartItems.fold<int>(0, (sum, item) => sum + item.quantity);
+    final reviewsAsync = ref.watch(productReviewsProvider(product.id));
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -30,18 +35,22 @@ class ProductDetailScreen extends ConsumerWidget {
                 icon: const Icon(Icons.shopping_cart_outlined, color: Colors.white),
                 onPressed: () => context.push('/cart'),
               ),
-              Positioned(
-                top: 8,
-                right: 8,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
+              if (cartCount > 0)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      '$cartCount',
+                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
                   ),
-                  child: const Text('2', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
                 ),
-              ),
             ],
           ),
           const SizedBox(width: 8),
@@ -193,6 +202,84 @@ class ProductDetailScreen extends ConsumerWidget {
                             )
                           ],
                         ),
+                        const SizedBox(height: 24),
+                        const Divider(),
+                        const SizedBox(height: 16),
+                        // Customer Reviews Section
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Customer Reviews (${product.totalReviews})',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                            TextButton.icon(
+                              onPressed: () => _showAddReviewDialog(context, ref),
+                              icon: const Icon(Icons.rate_review, size: 18, color: Color(0xFF2E7D32)),
+                              label: const Text('Add Review', style: TextStyle(color: Color(0xFF2E7D32))),
+                            ),
+                          ],
+                        ),
+                        reviewsAsync.when(
+                          data: (reviews) {
+                            if (reviews.isEmpty) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 12.0),
+                                child: Text('No reviews yet. Be the first to review!', style: TextStyle(color: Colors.grey.shade600, fontSize: 14)),
+                              );
+                            }
+                            return ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: reviews.length,
+                              itemBuilder: (context, idx) {
+                                final rev = reviews[idx];
+                                return Card(
+                                  margin: const EdgeInsets.symmetric(vertical: 6.0),
+                                  elevation: 0,
+                                  color: Colors.grey.shade50,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(12.0),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(rev.reviewerName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                            Row(
+                                              children: List.generate(
+                                                5,
+                                                (i) => Icon(
+                                                  i < rev.rating ? Icons.star : Icons.star_border,
+                                                  size: 16,
+                                                  color: Colors.amber,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        if (rev.comment.isNotEmpty) ...[
+                                          const SizedBox(height: 6),
+                                          Text(rev.comment, style: const TextStyle(fontSize: 13)),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                          loading: () => const Padding(
+                            padding: EdgeInsets.all(12.0),
+                            child: Center(child: CircularProgressIndicator(color: Color(0xFF2E7D32))),
+                          ),
+                          error: (e, _) => Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text('Unable to load reviews.', style: TextStyle(color: Colors.grey.shade500)),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -262,6 +349,78 @@ class ProductDetailScreen extends ConsumerWidget {
           style: const TextStyle(fontSize: 12),
         ),
       ],
+    );
+  }
+
+  void _showAddReviewDialog(BuildContext context, WidgetRef ref) {
+    int selectedRating = 5;
+    final commentController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Rate this Product'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(
+                  5,
+                  (i) => IconButton(
+                    icon: Icon(
+                      i < selectedRating ? Icons.star : Icons.star_border,
+                      color: Colors.amber,
+                      size: 32,
+                    ),
+                    onPressed: () => setState(() => selectedRating = i + 1),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: commentController,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: 'Share your experience with this product...',
+                ),
+                maxLines: 3,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32)),
+              onPressed: () async {
+                try {
+                  final repo = ref.read(marketplaceRepositoryProvider);
+                  await repo.addReview(product.id, selectedRating, commentController.text.trim());
+                  ref.invalidate(productReviewsProvider(product.id));
+                  if (ctx.mounted) {
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Review submitted! Thank you.')),
+                    );
+                  }
+                } catch (e) {
+                  if (ctx.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to submit review: $e')),
+                    );
+                  }
+                }
+              },
+              child: const Text('Submit', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

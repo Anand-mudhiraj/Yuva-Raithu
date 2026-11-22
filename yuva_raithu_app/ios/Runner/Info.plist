@@ -45,5 +45,14 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Yuva Raithu requires microphone access for voice assistant agricultural commands.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Yuva Raithu uses speech recognition to interpret your farming queries.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 </dict>
 </plist>

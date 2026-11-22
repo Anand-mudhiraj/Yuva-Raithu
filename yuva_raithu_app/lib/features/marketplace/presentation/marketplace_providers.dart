@@ -13,15 +13,15 @@ final marketplaceRepositoryProvider = Provider((ref) {
 final productsProvider = FutureProvider.family<List<Product>, String>((ref, paramString) async {
   final repository = ref.watch(marketplaceRepositoryProvider);
   
-  // Parse the query parameters from the string (e.g. category=SEEDS&query=Urea)
-  final uri = Uri.parse('http://dummy.com/?$paramString');
-  final category = uri.queryParameters['category'];
-  final query = uri.queryParameters['query'];
+  // Safely parse query parameters without URI syntax crashes
+  final queryParams = Uri.splitQueryString(paramString);
+  final category = queryParams['category'];
+  final query = queryParams['query'];
   
-  if (query != null && query.isNotEmpty) {
-    return repository.searchProducts(query);
-  } else if (category != null && category.isNotEmpty) {
-    return repository.getProductsByCategory(category);
+  if (query != null && query.trim().isNotEmpty) {
+    return repository.searchProducts(query.trim());
+  } else if (category != null && category.trim().isNotEmpty) {
+    return repository.getProductsByCategory(category.trim());
   } else {
     return repository.getAllProducts();
   }
@@ -30,4 +30,9 @@ final productsProvider = FutureProvider.family<List<Product>, String>((ref, para
 final productReviewsProvider = FutureProvider.family<List<Review>, int>((ref, productId) async {
   final repository = ref.watch(marketplaceRepositoryProvider);
   return repository.getProductReviews(productId);
+});
+
+final productByIdProvider = FutureProvider.family<Product, int>((ref, productId) async {
+  final repository = ref.watch(marketplaceRepositoryProvider);
+  return repository.getProductById(productId);
 });

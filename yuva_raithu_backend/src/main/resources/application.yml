@@ -16,7 +16,7 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
 jwt:
-  secret: yuvaRaithuSuperSecretKeyForJwtGeneration2026ThisMustBeLongEnoughForHS512Algorithm
+  secret: ${JWT_SECRET:yuvaRaithuSuperSecretKeyForJwtGeneration2026ThisMustBeLongEnoughForHS512Algorithm}
   expirationMs: 86400000 # 24 hours
 
 server:

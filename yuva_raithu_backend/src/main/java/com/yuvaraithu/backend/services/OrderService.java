@@ -83,6 +83,18 @@ public class OrderService {
                 .collect(Collectors.toList());
     }
 
+    public OrderDTO getOrderById(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found with id: " + orderId));
+        return OrderDTO.fromEntity(order);
+    }
+
+    public List<OrderDTO> getAllOrders() {
+        return orderRepository.findAllByOrderByCreatedAtDesc().stream()
+                .map(OrderDTO::fromEntity)
+                .collect(Collectors.toList());
+    }
+
     public OrderDTO updateOrderStatus(Long orderId, OrderStatus newStatus) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));

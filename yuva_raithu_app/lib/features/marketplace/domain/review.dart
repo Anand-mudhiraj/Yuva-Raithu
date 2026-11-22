@@ -6,6 +6,8 @@ class Review {
   final String comment;
   final String createdAt;
 
+  String get userName => reviewerName;
+
   Review({
     required this.id,
     required this.productId,

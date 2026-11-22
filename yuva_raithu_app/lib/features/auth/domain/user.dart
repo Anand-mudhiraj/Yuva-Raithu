@@ -15,11 +15,11 @@ class User {
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
-      id: json['id'],
-      phoneNumber: json['phoneNumber'] ?? '',
-      email: json['email'] ?? '',
-      fullName: json['fullName'] ?? '',
-      roles: List<String>.from(json['roles'] ?? []),
+      id: json['id'] is int ? json['id'] : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      phoneNumber: json['phoneNumber']?.toString() ?? '',
+      email: json['email']?.toString() ?? '',
+      fullName: json['fullName']?.toString() ?? '',
+      roles: (json['roles'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
     );
   }
 

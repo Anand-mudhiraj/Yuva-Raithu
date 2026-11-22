@@ -15,10 +15,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordController = TextEditingController();
 
   void _login() async {
-    final success = await ref.read(authNotifierProvider.notifier).login(
-      _phoneController.text,
-      _passwordController.text,
-    );
+    final phone = _phoneController.text.trim();
+    final password = _passwordController.text.trim();
+    if (phone.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter phone number and password')),
+      );
+      return;
+    }
+
+    final success = await ref.read(authNotifierProvider.notifier).login(phone, password);
 
     if (success) {
       if (mounted) context.go('/home');
@@ -26,7 +32,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (mounted) {
         final error = ref.read(authNotifierProvider).error;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error ?? 'Login failed')),
+          SnackBar(
+            content: Text(error ?? 'Login failed. Please check credentials or connection.'),
+            backgroundColor: Colors.red.shade700,
+            duration: const Duration(seconds: 4),
+          ),
         );
       }
     }

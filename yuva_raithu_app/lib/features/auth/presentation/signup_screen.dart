@@ -16,10 +16,20 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   final _passwordController = TextEditingController();
 
   void _signup() async {
+    final fullName = _fullNameController.text.trim();
+    final phone = _phoneController.text.trim();
+    final password = _passwordController.text.trim();
+    if (fullName.isEmpty || phone.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all fields')),
+      );
+      return;
+    }
+
     final success = await ref.read(authNotifierProvider.notifier).signup(
-      _fullNameController.text,
-      _phoneController.text,
-      _passwordController.text,
+      fullName,
+      phone,
+      password,
     );
 
     if (success) {

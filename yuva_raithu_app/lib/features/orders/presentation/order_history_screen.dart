@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:yuva_raithu_app/features/orders/domain/order.dart';
 import 'package:yuva_raithu_app/features/orders/presentation/checkout_screen.dart';
 
@@ -34,7 +35,7 @@ class OrderHistoryScreen extends ConsumerWidget {
                   isThreeLine: true,
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () {
-                    // View order details
+                    context.push('/order-tracking/${order.id}', extra: order);
                   },
                 ),
               );

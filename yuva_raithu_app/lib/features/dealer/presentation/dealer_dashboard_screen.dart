@@ -1,125 +1,164 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:yuva_raithu_app/core/providers.dart';
+import 'package:yuva_raithu_app/features/orders/domain/order.dart';
+import 'package:yuva_raithu_app/features/orders/presentation/checkout_screen.dart';
 
-class DealerDashboardScreen extends StatelessWidget {
+final dealerOrdersProvider = FutureProvider.autoDispose<List<Order>>((ref) async {
+  final repo = ref.watch(orderRepositoryProvider);
+  return repo.getAllOrders();
+});
+
+class DealerDashboardScreen extends ConsumerWidget {
   const DealerDashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ordersAsync = ref.watch(dealerOrdersProvider);
+    final authState = ref.watch(authNotifierProvider);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5FFF5),
       appBar: AppBar(
         backgroundColor: const Color(0xFF2E7D32),
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.menu, color: Colors.white),
-          onPressed: () {},
+        title: Text(
+          'Dealer Hub - ${authState.user?.fullName ?? "Sri Rama Traders"}',
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
         ),
-        title: const Text('Dealer Dashboard', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         actions: [
-          IconButton(icon: const Icon(Icons.notifications_none, color: Colors.white), onPressed: () {}),
+          IconButton(
+            icon: const Icon(Icons.storefront, color: Colors.white),
+            tooltip: 'View Marketplace',
+            onPressed: () => context.push('/products'),
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.white),
+            tooltip: 'Logout',
+            onPressed: () async {
+              await ref.read(authNotifierProvider.notifier).logout();
+              if (context.mounted) context.go('/login');
+            },
+          ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Stats Container
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF2E7D32),
-                borderRadius: BorderRadius.circular(16),
-              ),
+      body: ordersAsync.when(
+        data: (orders) {
+          final totalOrders = orders.length;
+          final pendingOrders = orders.where((o) => o.status.toUpperCase() == 'PENDING').length;
+          final deliveredOrders = orders.where((o) => o.status.toUpperCase() == 'DELIVERED').length;
+          final totalRevenue = orders.fold<double>(0.0, (sum, o) => sum + o.totalAmount);
+
+          return RefreshIndicator(
+            color: const Color(0xFF2E7D32),
+            onRefresh: () async => ref.invalidate(dealerOrdersProvider),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(16.0),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Stats Summary Card
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2E7D32),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _buildStatColumn('Total Orders', '$totalOrders'),
+                            _buildStatColumn('Pending', '$pendingOrders'),
+                            _buildStatColumn('Delivered', '$deliveredOrders'),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        const Divider(color: Colors.white30),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.currency_rupee, color: Colors.white, size: 20),
+                            Text(
+                              'Gross Revenue: ₹${totalRevenue.toStringAsFixed(2)}',
+                              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Header for Orders
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildStatColumn('Total Orders', '25'),
-                      _buildStatColumn('Pending Orders', '5'),
-                      _buildStatColumn('Delivered', '20'),
+                      const Text('Customer Orders', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                      Text('${orders.length} total', style: const TextStyle(color: Colors.grey)),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  const Divider(color: Colors.white30),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildStatColumn('Today\'s Sales', '₹18,750'),
-                      _buildStatColumn('This Month', '₹2,45,300'),
-                    ],
-                  )
+                  const SizedBox(height: 12),
+
+                  if (orders.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(32),
+                      alignment: Alignment.center,
+                      child: Column(
+                        children: [
+                          Icon(Icons.inbox_outlined, size: 48, color: Colors.grey.shade400),
+                          const SizedBox(height: 12),
+                          const Text('No orders received yet.', style: TextStyle(color: Colors.grey, fontSize: 16)),
+                        ],
+                      ),
+                    )
+                  else
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: orders.length,
+                      separatorBuilder: (context, index) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final order = orders[index];
+                        return _buildOrderCard(context, ref, order);
+                      },
+                    ),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
-            
-            // New Orders Header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('New Orders', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                TextButton(
-                  onPressed: () {},
-                  child: const Text('View All', style: TextStyle(color: Color(0xFF2E7D32))),
-                )
-              ],
-            ),
-            const SizedBox(height: 8),
-
-            // Order List
-            ListView(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              children: [
-                _buildOrderCard(
-                  orderId: '#YR1026',
-                  time: '10:30 AM',
-                  productDesc: 'Urea 45kg x 2 Bags',
-                  farmerName: 'Anand',
-                  village: 'Chintapally',
-                ),
-                const SizedBox(height: 12),
-                _buildOrderCard(
-                  orderId: '#YR1027',
-                  time: '11:20 AM',
-                  productDesc: 'DAP 50kg x 1 Bag',
-                  farmerName: 'Raju',
-                  village: 'Devarakonda',
-                ),
-                const SizedBox(height: 12),
-                _buildOrderCard(
-                  orderId: '#YR1028',
-                  time: '11:45 AM',
-                  productDesc: 'NPK 19:19:19 x 2 Bags',
-                  farmerName: 'Suresh',
-                  village: 'Narketpally',
-                ),
-              ],
-            )
-          ],
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFF2E7D32))),
+        error: (err, _) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Error loading orders: $err'),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: () => ref.invalidate(dealerOrdersProvider),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFF2E7D32),
-        unselectedItemColor: Colors.grey,
-        currentIndex: 0,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Dashboard'),
-          BottomNavigationBarItem(icon: Icon(Icons.receipt), label: 'Orders'),
-          BottomNavigationBarItem(icon: Icon(Icons.inventory_2), label: 'Products'),
-          BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Customers'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push('/add-product'),
         backgroundColor: const Color(0xFF2E7D32),
-        child: const Icon(Icons.add, color: Colors.white),
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text('Add Product', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
     );
   }
@@ -127,20 +166,32 @@ class DealerDashboardScreen extends StatelessWidget {
   Widget _buildStatColumn(String label, String value) {
     return Column(
       children: [
-        Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+        Text(label, style: const TextStyle(color: Colors.white70, fontSize: 13)),
         const SizedBox(height: 4),
-        Text(value, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+        Text(value, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
       ],
     );
   }
 
-  Widget _buildOrderCard({
-    required String orderId,
-    required String time,
-    required String productDesc,
-    required String farmerName,
-    required String village,
-  }) {
+  Widget _buildOrderCard(BuildContext context, WidgetRef ref, Order order) {
+    Color statusColor;
+    switch (order.status.toUpperCase()) {
+      case 'DELIVERED':
+        statusColor = Colors.green;
+        break;
+      case 'SHIPPED':
+        statusColor = Colors.blue;
+        break;
+      case 'CONFIRMED':
+        statusColor = Colors.orange;
+        break;
+      case 'CANCELLED':
+        statusColor = Colors.red;
+        break;
+      default:
+        statusColor = Colors.amber.shade800;
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -154,53 +205,81 @@ class DealerDashboardScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Order $orderId', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-              Text(time, style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+              Text('Order #${order.id}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  order.status,
+                  style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 12),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
-          Text(productDesc, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
+          Text(
+            'Address: ${order.deliveryAddress.isNotEmpty ? order.deliveryAddress : "Standard delivery"}',
+            style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Total: ₹${order.totalAmount.toStringAsFixed(2)} (${order.paymentMethod})',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          ),
+          const SizedBox(height: 12),
           Row(
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Farmer: $farmerName', style: TextStyle(color: Colors.grey.shade700, fontSize: 13)),
-                    const SizedBox(height: 2),
-                    Text('Village: $village', style: TextStyle(color: Colors.grey.shade700, fontSize: 13)),
-                  ],
+              OutlinedButton(
+                onPressed: () => context.push('/order-tracking/${order.id}', extra: order),
+                child: const Text('Track Details'),
+              ),
+              const SizedBox(width: 8),
+              PopupMenuButton<String>(
+                onSelected: (newStatus) async {
+                  try {
+                    final repo = ref.read(orderRepositoryProvider);
+                    await repo.updateOrderStatus(order.id, newStatus);
+                    ref.invalidate(dealerOrdersProvider);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Order #${order.id} status updated to $newStatus')),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Update failed: $e')),
+                      );
+                    }
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(value: 'CONFIRMED', child: Text('Confirm Order')),
+                  const PopupMenuItem(value: 'SHIPPED', child: Text('Dispatch (Ship)')),
+                  const PopupMenuItem(value: 'DELIVERED', child: Text('Mark Delivered')),
+                  const PopupMenuItem(value: 'CANCELLED', child: Text('Cancel Order')),
+                ],
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2E7D32),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('Update Status', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                      Icon(Icons.arrow_drop_down, color: Colors.white, size: 18),
+                    ],
+                  ),
                 ),
               ),
-              Row(
-                children: [
-                  ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2E7D32),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      minimumSize: Size.zero,
-                    ),
-                    child: const Text('Accept', style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                  const SizedBox(width: 8),
-                  OutlinedButton(
-                    onPressed: () {},
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.red),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      minimumSize: Size.zero,
-                    ),
-                    child: const Text('Reject', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-                  ),
-                ],
-              )
             ],
-          )
+          ),
         ],
       ),
     );

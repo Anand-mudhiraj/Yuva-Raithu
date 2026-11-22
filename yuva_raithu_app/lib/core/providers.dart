@@ -5,7 +5,12 @@ import 'package:yuva_raithu_app/core/network/api_client.dart';
 import 'package:yuva_raithu_app/features/auth/data/auth_repository.dart';
 import 'package:yuva_raithu_app/features/auth/presentation/auth_notifier.dart';
 
-final secureStorageProvider = Provider((ref) => const FlutterSecureStorage());
+final secureStorageProvider = Provider((ref) => const FlutterSecureStorage(
+  aOptions: AndroidOptions(
+    encryptedSharedPreferences: true,
+    resetOnError: true,
+  ),
+));
 
 final dioProvider = Provider((ref) => Dio());
 

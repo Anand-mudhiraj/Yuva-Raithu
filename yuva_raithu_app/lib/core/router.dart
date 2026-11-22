@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yuva_raithu_app/core/providers.dart';
@@ -6,10 +7,13 @@ import 'package:yuva_raithu_app/features/auth/presentation/signup_screen.dart';
 import 'package:yuva_raithu_app/features/marketplace/presentation/home_screen.dart';
 import 'package:yuva_raithu_app/features/marketplace/presentation/product_listing_screen.dart';
 import 'package:yuva_raithu_app/features/marketplace/presentation/product_detail_screen.dart';
+import 'package:yuva_raithu_app/features/marketplace/presentation/marketplace_providers.dart';
 import 'package:yuva_raithu_app/features/marketplace/domain/product.dart';
+import 'package:yuva_raithu_app/features/orders/domain/order.dart';
 import 'package:yuva_raithu_app/features/orders/presentation/cart_screen.dart';
 import 'package:yuva_raithu_app/features/orders/presentation/checkout_screen.dart';
 import 'package:yuva_raithu_app/features/orders/presentation/order_history_screen.dart';
+import 'package:yuva_raithu_app/features/orders/presentation/order_tracking_screen.dart';
 import 'package:yuva_raithu_app/features/voice/presentation/voice_assistant_screen.dart';
 import 'package:yuva_raithu_app/features/dealer/presentation/dealer_dashboard_screen.dart';
 import 'package:yuva_raithu_app/features/dealer/presentation/add_product_screen.dart';
@@ -52,9 +56,33 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/product/:id',
         builder: (context, state) {
-          // Expecting Product object as extra
-          final product = state.extra as Product;
-          return ProductDetailScreen(product: product);
+          if (state.extra is Product) {
+            return ProductDetailScreen(product: state.extra as Product);
+          }
+          final id = int.tryParse(state.pathParameters['id'] ?? '0') ?? 0;
+          return Consumer(
+            builder: (context, ref, _) {
+              final prodAsync = ref.watch(productByIdProvider(id));
+              return prodAsync.when(
+                data: (prod) => ProductDetailScreen(product: prod),
+                loading: () => const Scaffold(
+                  body: Center(child: CircularProgressIndicator(color: Color(0xFF2E7D32))),
+                ),
+                error: (e, _) => Scaffold(
+                  appBar: AppBar(title: const Text('Product')),
+                  body: Center(child: Text('Product not found: $e')),
+                ),
+              );
+            },
+          );
+        },
+      ),
+      GoRoute(
+        path: '/order-tracking/:id',
+        builder: (context, state) {
+          final id = int.tryParse(state.pathParameters['id'] ?? '0') ?? 0;
+          final order = state.extra is Order ? state.extra as Order : null;
+          return OrderTrackingScreen(orderId: id, order: order);
         },
       ),
       GoRoute(
